@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# Global sum var, can't return values from functions
+sum=0
+
+# Count the number of lines in the current directory
+function current_dir {
+	for file in $1/*; do
+		if [ -f "$file" ]; then
+			result=$(wc -l "$file")
+			num=($result)
+			sum=$(($sum+${num[0]}))
+		fi
+	done
+}
+
+function recursive_dir {
+	for dir in *; do
+		if [ -d ${dir} ]; then
+			current_dir ${dir}
+		fi
+	done
+	for file in *; do
+		if [ -f "$file" ]; then
+			result=$(wc -l "$file")
+			num=($result)
+			sum=$(($sum+${num[0]}))
+		fi
+	done
+}
+
+
+if [ "$1" = -r ]; then
+	recursive_dir
+fi
+
+if [ $# -eq 0 ]; then
+	dir=$(pwd)
+	current_dir $dir
+fi
+
+echo "Lines of code: ${sum}"
