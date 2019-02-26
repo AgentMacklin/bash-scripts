@@ -27,7 +27,7 @@ def main():
 def get_command(file_ext):
     commands = {
         'py': 'python3 ',
-        'm': 'octave --traditional -q '
+        'm': 'octave -q --no-gui '
     }
     try:
         command = commands[file_ext]
