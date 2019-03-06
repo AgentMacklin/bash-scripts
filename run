@@ -15,7 +15,11 @@ def run_file(filename):
     # get file extension without the dot
     commands = {
         'py': 'python3 ',
+<<<<<<< HEAD
         'm': 'matlab -nojvm -nodisplay -nosplash -r '
+=======
+        'm': 'octave -q --no-gui '
+>>>>>>> 5c06e5543a87281bdff5433d81eca4cfd75ee54c
     }
     try:
         file_ext = filename.split('.')[1]
