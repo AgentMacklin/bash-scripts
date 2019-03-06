@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+
+import fire
+from termcolor import colored
+
+def finite_lift_slope(oswald, aspectRatio):
+    ''' Calculate the lift coefficient slope of a finite wing. '''
+    from math import pi
+    coeff = 0.11 / (1 + ((57.3 * 0.11) / (pi * oswald * aspectRatio)))
+    print(colored("\nLift coefficient slope for a finite wing:", "cyan"))
+    print(f"{coeff}\n")
+
+def dyn_press(rho, veloc):
+    ''' Dynamic pressure. '''
+    q = 0.5 * rho * veloc**2
+    print(colored("\nDynamic Pressure: ", "cyan"), q, "\n")
+
+def lift_coeff(dynPress, wingArea, lift):
+    ''' Lift coefficient. '''
+    liftCoeff = lift / (dynPress * wingArea)
+    print(colored("\nLift Coefficient: ", "cyan"), liftCoeff, "\n")
+
+if __name__ == '__main__':
+    fire.Fire()
