@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# aurpac wraps cloning an AUR repo and makepkg into one command,
+# and cleans up the AUR repo afterwards
+
+# Long temporary directory name so there shouldn't be any
+# naming conflicts, hopefully
+DIR=temporary_arch_user_repository_directory
+
+if [ "$#" -ne 1 ]; then
+    echo "Illegal number of parameters"
+else
+    mkdir $DIR && cd $DIR
+    echo "==> Cloning repository..."
+    git clone $1 .
+    makepkg -sic
+    cd .. && rm -rf $DIR
+    echo "==> Done!"
+fi

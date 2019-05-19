@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Run Kerbal Space Program from anywhere
+
+cd $HOME/KSP
+./KSP.x86_64
