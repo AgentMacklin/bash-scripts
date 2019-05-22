@@ -2,7 +2,7 @@
 
 # Configure a new system install
 
-# Colored output
+# Colored output so it looks nice
 RED='\033[1;31m'         # Red
 GREEN='\033[1;32m'       # Green
 BLUE='\033[1;34m'        # Blue
@@ -10,14 +10,38 @@ CYAN='\033[1;36m'        # Cyan
 WHITE='\033[1;37m'       # White
 RESET='\033[0m'          # Text Reset
 
-ZSH_HIGH="zsh-syntax-highlighting"
 ZSH_HIGH_DIR=${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
-ZSH_CONF=$HOME/.zshrc
-OMZ_DIR=$HOME/.oh-my-zsh
+ZSH_HIGH="zsh-syntax-highlighting"      # this is dropped into ZSH config to enable highlighting 
+ZSH_CONF=$HOME/.zshrc                   # ZSH config file
+OMZ_DIR=$HOME/.oh-my-zsh                # for checking if oh-my-zsh is installed        
+WALLPAPER=$HOME/Pictures/wallpaper.jpg  # wallpaper file, downloads from the internet if it's not already there
 
-# # Get development tools
-# echo "==> Downloading development tools..."
-# sudo pacman -Syu make cmake gcc python-pip git curl
+# Packages to install, the for loop below runs through them and installs them if they're not already installed
+PACKAGES=(make cmake gcc python-pip git curl tmux)
+
+
+echo -e "${GREEN}==> ${WHITE}Installing development tools...${RESET}"
+# Check if something is installed and install it if it is not
+for i in "${PACKAGES[@]}"
+do
+    if pacman -Qs $i > /dev/null ; then
+        echo -e "  ${BLUE}-> ${RESET}$i is already installed"
+    else
+        echo -e "  ${CYAN}-> ${RESET}installing $i"
+        sudo pacman -Syy $i
+    fi
+done
+
+
+# Installing Rust tools
+echo -e "${GREEN}==> ${WHITE}Installing Rust toolchain...${RESET}"
+if [ ! $(command -v rustup) ]; then
+    echo -e "  ${CYAN}-> ${RESET}Installing rustup"
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+else 
+    echo -e "  ${BLUE}-> ${RESET}rustup is already installed"
+fi
+
 
 # # Installing zsh and plugins
 echo -e "${GREEN}==> ${WHITE}Installing and configuring ZSH...${RESET}"
@@ -47,11 +71,10 @@ else
 fi
 echo -e "${GREEN}==> ${WHITE}ZSH plugins configured successfully...${RESET}"
 
-# Installing 
-echo -e "${GREEN}==> ${WHITE}Installing Rust toolchain...${RESET}"
-if ! [ -x $(command -v rustup) ]; then
-    echo -e "  ${CYAN}-> ${RESET}Installing rustup"
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-else 
-    echo -e "  ${BLUE}-> ${RESET}rustup is already installed"
+# Download a wallpaper I like...
+if [ ! -f $WALLPAPER ]; then
+    echo -e "${GREEN}==> ${WHITE}Downloading wallpaper...${RESET}"
+    curl https://images.wallpaperscraft.com/image/neon_lights_dark_133133_3840x2160.jpg > $WALLPAPER
 fi
+
+echo -e "${GREEN}==> ${WHITE}System configuration done!${RESET}"
