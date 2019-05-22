@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+
+# Configure a new system install
+
+# Colored output
+RED='\033[1;31m'         # Red
+GREEN='\033[1;32m'       # Green
+BLUE='\033[1;34m'        # Blue
+CYAN='\033[1;36m'        # Cyan
+WHITE='\033[1;37m'       # White
+RESET='\033[0m'          # Text Reset
+
+ZSH_HIGH="zsh-syntax-highlighting"
+ZSH_HIGH_DIR=${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+ZSH_CONF=$HOME/.zshrc
+OMZ_DIR=$HOME/.oh-my-zsh
+
+# # Get development tools
+# echo "==> Downloading development tools..."
+# sudo pacman -Syu make cmake gcc python-pip git curl
+
+# # Installing zsh and plugins
+echo -e "${GREEN}==> ${WHITE}Installing and configuring ZSH...${RESET}"
+# sudo pacman -Syu zsh
+if [ ! -d $OMZ_DIR ]; then
+    echo -e "  ${CYAN}-> ${RESET}Installing oh-my-zsh"
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+else
+    echo -e "  ${BLUE}-> ${RESET}oh-my-zsh directory already exists"
+fi
+
+# Installing ZSH syntax highlighting, check if zsh-highlight-syntax is already there before cloning
+if [ ! -d $ZSH_HIGH_DIR ]; then
+    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git $ZSH_HIGH_DIR
+else
+    echo -e "  ${BLUE}-> ${RESET}zsh-syntax-highlighting already installed"
+fi
+
+# Add plugin to .zshrc. zsh-syntax-highlight already exists in a comment so this will 
+# check to see if there is more than one occurence before adding zsh highlight to list
+# of plugins
+if [ $(grep -c $ZSH_HIGH "$ZSH_CONF") -gt 1 ]; then
+    echo -e "  ${BLUE}-> ${RESET}$ZSH_HIGH already added to list of plugins in $ZSH_CONF"
+else
+    sed "s/\plugins=(\b/&$ZSH_HIGH /" -i $ZSH_CONF
+    echo -e "  ${CYAN}-> ${RESET}$ZSH_HIGH added to list of plugins in $ZSH_CONF"
+fi
+echo -e "${GREEN}==> ${WHITE}ZSH plugins configured successfully...${RESET}"
+
+# Installing 
+echo -e "${GREEN}==> ${WHITE}Installing Rust toolchain...${RESET}"
+if ! [ -x $(command -v rustup) ]; then
+    echo -e "  ${CYAN}-> ${RESET}Installing rustup"
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+else 
+    echo -e "  ${BLUE}-> ${RESET}rustup is already installed"
+fi
