@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+for file in *; do
+    sed -i "s|#!/usr/bin/env bash|#!/usr/bin/env bash|g" $file
+done

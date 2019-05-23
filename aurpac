@@ -4,15 +4,35 @@
 
 # Long temporary directory name so there shouldn't be any
 # naming conflicts, hopefully
-DIR=temporary_arch_user_repository_directory
+DIR=aurpacs_temporary_arch_user_repository_directory
+
+# Colored output so it looks nice
+RED='\033[1;31m'         # Red
+GREEN='\033[1;32m'       # Green
+BLUE='\033[1;34m'        # Blue
+CYAN='\033[1;36m'        # Cyan
+WHITE='\033[1;37m'       # White
+RESET='\033[0m'          # Text Reset
+
+
+aurpac_msg() {
+    MSG="${WHITE}[${1}aurpac${WHITE}]${RESET}"
+}
 
 if [ "$#" -ne 1 ]; then
-    echo "Illegal number of parameters"
+    aurpac_msg $RED
+    echo -e "$MSG Illegal number of parameters"
 else
+    if [ -d $DIR ]; then
+        aurpac_msg $BLUE
+        echo -e "$MSG Cleaning old temporary directory..."
+        rm -rf $DIR
+    fi
+    aurpac_msg $CYAN
     mkdir $DIR && cd $DIR
-    echo "==> Cloning repository..."
+    echo -e "$MSG Cloning repository..."
     git clone $1 .
     makepkg -sic
     cd .. && rm -rf $DIR
-    echo "==> Done!"
+    echo -e "$MSG ${WHITE}Done!${RESET}"
 fi

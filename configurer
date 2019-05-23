@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 
-# Configure a new system install
+# Configure a new system install, including installing development packages
+# and adding text to config files.
+#
+# This script was written with Manjaro or other Arch based systems in mind,
+# thus it used pacman instead of apt. Thus, it obviously won't work with 
+# Debian based systems.
+
+pad () {
+    echo
+    echo $1
+    echo
+}
 
 # Colored output so it looks nice
 RED='\033[1;31m'         # Red
@@ -11,13 +22,29 @@ WHITE='\033[1;37m'       # White
 RESET='\033[0m'          # Text Reset
 
 ZSH_HIGH_DIR=${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
-ZSH_HIGH="zsh-syntax-highlighting"      # this is dropped into ZSH config to enable highlighting 
+ZSH_HIGH="zsh-syntax-highlighting"      # this is dropped into ZSH config to enable highlighting
 ZSH_CONF=$HOME/.zshrc                   # ZSH config file
-OMZ_DIR=$HOME/.oh-my-zsh                # for checking if oh-my-zsh is installed        
+OMZ_DIR=$HOME/.oh-my-zsh                # for checking if oh-my-zsh is installed
 WALLPAPER=$HOME/Pictures/wallpaper.jpg  # wallpaper file, downloads from the internet if it's not already there
+HOME_BIN=$HOME/bin                      # bin for my stuff
+HOME_BIN_PATH='export PATH="$PATH:$HOME/bin"'
+ZSH_EXPORT='export ZSH="/home/austenl/.oh-my-zsh"'
+ZSH_CONF_CONTENTS="$HOME_BIN_PATH"
 
 # Packages to install, the for loop below runs through them and installs them if they're not already installed
 PACKAGES=(make cmake gcc python-pip git curl tmux)
+
+ZSH_CONF_SETTINGS=(
+    "# Custom configs"
+    "$HOME_BIN_PATH"
+    "alias vim='nvim'"
+    "alias mkcd='. mkcd'")
+
+# Change color of messages so it's easier to spot when something went wrong
+configurer_msg() {
+    MSG="${WHITE}[${1}configurer${WHITE}]${RESET}"
+}
+
 
 
 echo -e "${GREEN}==> ${WHITE}Installing development tools...${RESET}"
@@ -25,51 +52,99 @@ echo -e "${GREEN}==> ${WHITE}Installing development tools...${RESET}"
 for i in "${PACKAGES[@]}"
 do
     if pacman -Qs $i > /dev/null ; then
-        echo -e "  ${BLUE}-> ${RESET}$i is already installed"
+        configurer_msg $BLUE
+        echo -e "$MSG $i is already installed"
     else
-        echo -e "  ${CYAN}-> ${RESET}installing $i"
+        configurer_msg $CYAN
+        echo -e "$MSG installing $i"
         sudo pacman -Syy $i
     fi
 done
 
 
+
 # Installing Rust tools
+configurer_msg $GREEN
 echo -e "${GREEN}==> ${WHITE}Installing Rust toolchain...${RESET}"
 if [ ! $(command -v rustup) ]; then
-    echo -e "  ${CYAN}-> ${RESET}Installing rustup"
+    configurer_msg $CYAN
+    echo -e "$MSG ${RESET}Installing rustup"
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-else 
-    echo -e "  ${BLUE}-> ${RESET}rustup is already installed"
+else
+    configurer_msg $BLUE
+    echo -e "$MSG ${RESET}rustup is already installed"
 fi
+
 
 
 # # Installing zsh and plugins
 echo -e "${GREEN}==> ${WHITE}Installing and configuring ZSH...${RESET}"
 # sudo pacman -Syu zsh
 if [ ! -d $OMZ_DIR ]; then
-    echo -e "  ${CYAN}-> ${RESET}Installing oh-my-zsh"
+    configurer_msg $CYAN
+    echo -e "$MSG Installing oh-my-zsh"
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
 else
-    echo -e "  ${BLUE}-> ${RESET}oh-my-zsh directory already exists"
+    configurer_msg $BLUE
+    echo -e "$MSG oh-my-zsh directory already exists"
 fi
+
+
 
 # Installing ZSH syntax highlighting, check if zsh-highlight-syntax is already there before cloning
 if [ ! -d $ZSH_HIGH_DIR ]; then
     git clone https://github.com/zsh-users/zsh-syntax-highlighting.git $ZSH_HIGH_DIR
 else
-    echo -e "  ${BLUE}-> ${RESET}zsh-syntax-highlighting already installed"
+    configurer_msg $BLUE
+    echo -e "$MSG zsh-syntax-highlighting already installed"
 fi
 
-# Add plugin to .zshrc. zsh-syntax-highlight already exists in a comment so this will 
+# Add plugin to .zshrc. zsh-syntax-highlight already exists in a comment so this will
 # check to see if there is more than one occurence before adding zsh highlight to list
 # of plugins
 if [ $(grep -c $ZSH_HIGH "$ZSH_CONF") -gt 1 ]; then
-    echo -e "  ${BLUE}-> ${RESET}$ZSH_HIGH already added to list of plugins in $ZSH_CONF"
+    configurer_msg $BLUE
+    echo -e "$MSG $ZSH_HIGH already added to list of plugins in $ZSH_CONF"
 else
     sed "s/\plugins=(\b/&$ZSH_HIGH /" -i $ZSH_CONF
-    echo -e "  ${CYAN}-> ${RESET}$ZSH_HIGH added to list of plugins in $ZSH_CONF"
+    configurer_msg $CYAN
+    echo -e "$MSG $ZSH_HIGH added to list of plugins in $ZSH_CONF"
 fi
-echo -e "${GREEN}==> ${WHITE}ZSH plugins configured successfully...${RESET}"
+
+
+
+
+# Adding shell configs to zsh config
+echo -e "${GREEN}==> ${WHITE}Adding configuration settings to $ZSH_CONF... ${RESET}"
+for i in "${ZSH_CONF_SETTINGS[@]}"; do
+    if grep -q "$i" $ZSH_CONF; then
+        configurer_msg $BLUE
+        echo -e "$MSG $i already added to $ZSH_CONF"
+    else
+        configurer_msg $CYAN
+        echo $i >> $ZSH_CONF
+        echo -e "$MSG added $i to $ZSH_CONF"
+    fi
+done
+
+
+# Adding home bin directory and cloning in my scripts
+echo -e "${GREEN}==> ${WHITE}Getting user scripts and adding to $HOME_BIN... ${RESET}"
+if [ ! -d $HOME_BIN ]; then     # Does home bin directory exist?
+    mkdir $HOME_BIN
+else
+    if [ -z "$(ls -A $HOME_BIN)" ]; then
+        configurer_msg $BLUE
+        echo -e "$MSG Cloning user bash scripts"
+        git clone https://gitlab.com/AgentMacklin/bash-scripts .
+    else
+        configurer_msg $BLUE
+        echo -e "$MSG Looks like $HOME_BIN already contains some files, check it after configurer is done"
+    fi
+fi
+
+
+
 
 # Download a wallpaper I like...
 if [ ! -f $WALLPAPER ]; then
@@ -78,3 +153,5 @@ if [ ! -f $WALLPAPER ]; then
 fi
 
 echo -e "${GREEN}==> ${WHITE}System configuration done!${RESET}"
+
+pad "Please restart terminal to refresh configs"
