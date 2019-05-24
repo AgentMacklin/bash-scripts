@@ -33,8 +33,8 @@ WALLPAPER_URL=https://images.wallpaperscraft.com/image/neon_lights_dark_133133_3
 
 
 
-# Packages to install
-PACKAGES=(
+# Packages to install with pacman
+PAC_PACKAGES=(
     make
     cmake
     autoconf
@@ -48,7 +48,12 @@ PACKAGES=(
     neovim
     figlet
     lolcat
+    snapd
 )
+
+# packages you can't install with pacman but you can with snap
+SNAP_PACKAGES=(spotify)
+
 
 # Things to add to .zshrc
 ZSH_CONF_SETTINGS=(
@@ -105,12 +110,16 @@ echo -e " ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝
 echo -e $RESET
 
 
-
 # Go ahead and install packages
 header_msg "Installing development tools..."
-for i in "${PACKAGES[@]}"
+for i in "${PAC_PACKAGES[@]}"
 do
     check_and_install $i
+done
+
+for i in "${SNAP_PACKAGES[@]}"
+do
+    snap install $i
 done
 
 
@@ -125,14 +134,38 @@ else
     echo -e "$MSG ${RESET}rustup is already installed"
 fi
 
+# Adding home bin directory and cloning in my scripts
+header_msg "Getting user scripts and adding to $HOME_BIN..."
+if [ ! -d $HOME_BIN ]; then     # Does home bin directory exist?
+    mkdir $HOME_BIN
+fi
+if [ -z "$(ls -A $HOME_BIN)" ]; then
+    configurer_msg $BLUE
+    echo -e "$MSG Cloning user bash scripts"
+    cd $HOME_BIN
+    git clone https://gitlab.com/AgentMacklin/bash-scripts .
+else
+    configurer_msg $BLUE
+    echo -e "$MSG Looks like $HOME_BIN already contains some files, check it after configurer is done"
+fi
 
-# # Installing zsh and plugins
+# Download a wallpaper I like...
+if [ ! -f $WALLPAPER ]; then
+    header_msg "Downloading wallpaper..."
+    curl $WALLPAPER_URL > $WALLPAPER
+fi
+
+# Installing zsh and plugins. oh-my-zsh is installed "manually" instead of using
+# curl to get the install script, since running the install script from the omz
+# people terminates the rest of this script
 header_msg "Installing and configuring ZSH..."
 # sudo pacman -Syu zsh
 if [ ! -d $OMZ_DIR ]; then
     configurer_msg $CYAN
     echo -e "$MSG Installing oh-my-zsh"
-    sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+    # sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+    git clone https://github.com/robbyrussell/oh-my-zsh.git ~/.oh-my-zsh
+    cp ~/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc
 else
     configurer_msg $BLUE
     echo -e "$MSG oh-my-zsh directory already exists"
@@ -167,28 +200,7 @@ for i in "${ZSH_CONF_SETTINGS[@]}"; do
     check_before_write "$i" $ZSH_CONF
 done
 
-
-# Adding home bin directory and cloning in my scripts
-header_msg "Getting user scripts and adding to $HOME_BIN..."
-if [ ! -d $HOME_BIN ]; then     # Does home bin directory exist?
-    mkdir $HOME_BIN
-fi
-if [ -z "$(ls -A $HOME_BIN)" ]; then
-    configurer_msg $BLUE
-    echo -e "$MSG Cloning user bash scripts"
-    cd $HOME_BIN
-    git clone https://gitlab.com/AgentMacklin/bash-scripts .
-else
-    configurer_msg $BLUE
-    echo -e "$MSG Looks like $HOME_BIN already contains some files, check it after configurer is done"
-fi
-
-
-# Download a wallpaper I like...
-if [ ! -f $WALLPAPER ]; then
-    header_msg "Downloading wallpaper..."
-    curl $WALLPAPER_URL > $WALLPAPER
-fi
+chsh -s /bin/zsh
 
 echo -e "${GREEN}==> ${WHITE}System configuration done!${RESET}"
 
