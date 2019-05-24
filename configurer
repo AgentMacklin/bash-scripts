@@ -117,6 +117,11 @@ do
     check_and_install $i
 done
 
+# Check if snapd.service is running before trying to install snap packages
+if [ `systemctl is-active snapd.service` == 'inactive' ]; then
+    systemctl start snapd.service
+fi
+
 for i in "${SNAP_PACKAGES[@]}"
 do
     snap install $i
