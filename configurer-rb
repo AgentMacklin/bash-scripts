@@ -1,0 +1,105 @@
+#!/usr/bin/env ruby
+# A better package manager than the one I wrote in Bash, theoretically...
+
+
+require 'colorize'
+require 'mkmf' # for checking if programs are installed
+
+puts
+puts " ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ ██╗   ██╗██████╗ ███████╗██████╗ ".cyan
+puts "██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ ██║   ██║██╔══██╗██╔════╝██╔══██╗".cyan
+puts "██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗██║   ██║██████╔╝█████╗  ██████╔╝".cyan
+puts "██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║██║   ██║██╔══██╗██╔══╝  ██╔══██╗".cyan
+puts "╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝╚██████╔╝██║  ██║███████╗██║  ██║".cyan
+puts " ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝".cyan
+puts
+
+
+class Logger
+    # Simple log messages to terminal
+    @@PROG_NAME = "configurer"
+    
+    def self.error(msg)
+        puts "[#{@@PROG_NAME.red}] #{msg}"
+    end
+
+    def self.success(msg)
+        puts "[#{@@PROG_NAME.green}] #{msg}"
+    end
+
+    def self.info(msg)
+        puts "[#{@@PROG_NAME.blue}] #{msg}"
+    end
+end
+
+class PackageManager
+    # Abstract away package management and installation
+
+    @@COMMANDS = {
+        'debian' => 'sudo apt install -y ',
+        'arch' => 'sudo pacman -S --noconfirm '
+    }
+
+    # Get distro and select system package manager based on it
+    def initialize()
+        @failed_installs = Array.new()
+        release = (`cat /etc/*-release | grep -i "LIKE"`).split("=")[1].strip()
+        @manager = @@COMMANDS[release]
+        Logger.info("Current linux distribution: #{release}")
+    end
+
+    # install a package and check if it was successful
+    def install(package)
+        command = @manager + package
+        Logger.info("Installing #{package}")
+        system(command)
+        check_install_status(package)
+    end
+
+    # Log a message if package is installed successfully, or add to list
+    # of failed installs if not
+    def check_install_status(package)
+        if find_executable(package)
+            Logger.success("#{package} installed successfully")
+        else
+            Logger.error("#{package} failed to install")
+            @failed_installs << package
+        end
+    end
+
+    # Print a list of failed installs
+    def list_failed_installs
+        Logger.error("The following packages failed to install...")
+        for package in @failed_installs
+            puts "  #{"==>".red} #{package}"
+        end
+    end
+end
+
+# Create a new package installer
+packager = PackageManager.new()
+
+# Packages to install
+packages = [
+    "make", 
+    "cmake", 
+    "autoconf", 
+    "automake", 
+    "libtool", 
+    "gcc", 
+    "python-pip", 
+    "git", 
+    "curl", 
+    "tmux", 
+    "neovim", 
+    "figlet", 
+    "lolcat", 
+    "snapd",
+]
+
+for package in packages
+    packager.install(package)
+end
+
+# Print a list of failed installs at the end of the script
+packager.list_failed_installs()
