@@ -1,105 +1,134 @@
 #!/usr/bin/env ruby
-# A better package manager than the one I wrote in Bash, theoretically...
+# frozen_string_literal: true
 
+# A better system configuration script than the one I wrote in Bash, theoretically...
 
+# install colorize if not already installed before proceeding
+begin
+  gem 'colorize' # colors are super unnecessary but I like them
+rescue Gem::LoadError
+  `gem install colorize`
+end
 require 'colorize'
 require 'mkmf' # for checking if programs are installed
 
 puts
-puts " ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ ██╗   ██╗██████╗ ███████╗██████╗ ".cyan
-puts "██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ ██║   ██║██╔══██╗██╔════╝██╔══██╗".cyan
-puts "██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗██║   ██║██████╔╝█████╗  ██████╔╝".cyan
-puts "██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║██║   ██║██╔══██╗██╔══╝  ██╔══██╗".cyan
-puts "╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝╚██████╔╝██║  ██║███████╗██║  ██║".cyan
-puts " ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝".cyan
+puts ' ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ ██╗   ██╗██████╗ ███████╗██████╗ '.cyan
+puts '██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ ██║   ██║██╔══██╗██╔════╝██╔══██╗'.cyan
+puts '██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗██║   ██║██████╔╝█████╗  ██████╔╝'.cyan
+puts '██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║██║   ██║██╔══██╗██╔══╝  ██╔══██╗'.cyan
+puts '╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝╚██████╔╝██║  ██║███████╗██║  ██║'.cyan
+puts ' ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝'.cyan
 puts
 
-
-class Logger
-    # Simple log messages to terminal
-    @@PROG_NAME = "configurer"
-    
-    def self.error(msg)
-        puts "[#{@@PROG_NAME.red}] #{msg}"
-    end
-
-    def self.success(msg)
-        puts "[#{@@PROG_NAME.green}] #{msg}"
-    end
-
-    def self.info(msg)
-        puts "[#{@@PROG_NAME.blue}] #{msg}"
-    end
+module ExitStatus
+  SUCCESS = 0
+  FAILURE = 1
 end
 
+STATUS = ExitStatus::SUCCESS
+
+# Simple log messages to terminal
+class Logger
+  @prog_name = 'configurer'
+
+  def self.error(msg)
+    puts "[#{@prog_name.red}] #{msg}"
+  end
+
+  def self.success(msg)
+    puts "[#{@prog_name.green}] #{msg}"
+  end
+
+  def self.info(msg)
+    puts "[#{@prog_name.blue}] #{msg}"
+  end
+end
+
+# Abstract away package management and installation
 class PackageManager
-    # Abstract away package management and installation
+  @@commands = {
+    'debian' => 'sudo apt install -y ',
+    'arch' => 'sudo pacman -S --noconfirm '
+  }
 
-    @@COMMANDS = {
-        'debian' => 'sudo apt install -y ',
-        'arch' => 'sudo pacman -S --noconfirm '
-    }
+  # Get distro and select system package manager based on it
+  def initialize
+    @failed_installs = []
+    @release = `cat /etc/*-release | grep -i "LIKE"`.split('=')[1].strip
+    @manager = @@commands[@release]
+    Logger.info("Current linux distribution: #{@release}")
+  end
 
-    # Get distro and select system package manager based on it
-    def initialize()
-        @failed_installs = Array.new()
-        release = (`cat /etc/*-release | grep -i "LIKE"`).split("=")[1].strip()
-        @manager = @@COMMANDS[release]
-        Logger.info("Current linux distribution: #{release}")
+  # install a package and check if it was successful
+  def install(package)
+    command = @manager + package
+    Logger.info("Installing #{package}")
+    system(command)
+    check_install_status(package)
+  end
+
+  # Determine the proper command for checking if a package is installed,
+  # based on the current distro
+  def package_is_installed_command
+    case @release
+    when 'arch'
+      'pacman -Qi '
+    when 'debian'
+      'apt list '
     end
+  end
 
-    # install a package and check if it was successful
-    def install(package)
-        command = @manager + package
-        Logger.info("Installing #{package}")
-        system(command)
-        check_install_status(package)
+  # Log a message if package is installed successfully, or add to list
+  # of failed installs if not
+  def check_install_status(package)
+    command = package_is_installed_command + package
+    if system(command)
+      Logger.success("#{package} installed successfully")
+    else
+      Logger.error("#{package} failed to install")
+      @failed_installs << package
+      STATUS == ExitStatus::FAILURE if STATUS == ExitStatus::SUCCESS
     end
+  end
 
-    # Log a message if package is installed successfully, or add to list
-    # of failed installs if not
-    def check_install_status(package)
-        if find_executable(package)
-            Logger.success("#{package} installed successfully")
-        else
-            Logger.error("#{package} failed to install")
-            @failed_installs << package
-        end
+  # Print a list of failed installs
+  def list_failed_installs
+    if STATUS == ExitStatus::FAILURE
+      Logger.error('The following packages failed to install...')
+      @failed_installs.each do |package|
+        puts "  #{'==>'.red} #{package}"
+      end
+    else
+      Logger.success('configurer ran successfully')
     end
-
-    # Print a list of failed installs
-    def list_failed_installs
-        Logger.error("The following packages failed to install...")
-        for package in @failed_installs
-            puts "  #{"==>".red} #{package}"
-        end
-    end
+  end
 end
 
 # Create a new package installer
-packager = PackageManager.new()
+packager = PackageManager.new
 
 # Packages to install
 packages = [
-    "make", 
-    "cmake", 
-    "autoconf", 
-    "automake", 
-    "libtool", 
-    "gcc", 
-    "python-pip", 
-    "git", 
-    "curl", 
-    "tmux", 
-    "neovim", 
-    "figlet", 
-    "lolcat", 
-    "snapd",
+  'make',
+  'cmake',
+  'autoconf',
+  'automake',
+  'libtool',
+  'gcc',
+  'python-pip',
+  'git',
+  'curl',
+  'tmux',
+  'neovim',
+  'figlet',
+  'lolcat',
+  'snapd'
 ]
 
-for package in packages
-    packager.install(package)
+packages.each do |package|
+  packager.install(package)
 end
 
 # Print a list of failed installs at the end of the script
-packager.list_failed_installs()
+packager.list_failed_installs

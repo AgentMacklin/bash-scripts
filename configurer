@@ -71,14 +71,14 @@ configurer_msg() {
 
 # Check if something is installed and if it's not, install it
 check_and_install() {
-#    if pacman -Qs $1 > /dev/null ; then
-#        configurer_msg $BLUE
-#        echo -e "$MSG $1 is already installed"
-#    else
+    if pacman -Qs $1 > /dev/null ; then
+        configurer_msg $BLUE
+        echo -e "$MSG $1 is already installed"
+    else
         configurer_msg $CYAN
         echo -e "$MSG installing $1"
-        sudo apt install -y $1
-#    fi
+        sudo pacman -S --noconfirm $1
+    fi
 }
 
 # Check a config file for a line of text and skip writing if it's already there
@@ -111,21 +111,21 @@ echo -e $RESET
 
 
 # Go ahead and install packages
-# header_msg "Installing development tools..."
-# for i in "${PAC_PACKAGES[@]}"
-# do
-#     check_and_install $i
-# done
+ header_msg "Installing development tools..."
+ for i in "${PAC_PACKAGES[@]}"
+ do
+     check_and_install $i
+ done
 
-# # Check if snapd.service is running before trying to install snap packages
-# if [ `systemctl is-active snapd.service` == 'inactive' ]; then
-#     systemctl start snapd.service
-# fi
+# Check if snapd.service is running before trying to install snap packages
+ if [ `systemctl is-active snapd.service` == 'inactive' ]; then
+     systemctl start snapd.service
+ fi
 
-# for i in "${SNAP_PACKAGES[@]}"
-# do
-#     snap install $i
-# done
+ for i in "${SNAP_PACKAGES[@]}"
+ do
+     snap install $i
+ done
 
 
 # Installing Rust tools
