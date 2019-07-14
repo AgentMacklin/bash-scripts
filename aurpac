@@ -31,7 +31,7 @@ else
     aurpac_msg $CYAN
     mkdir $DIR && cd $DIR
     echo -e "$MSG Cloning repository..."
-    git clone $1 .
+    git clone "https://aur.archlinux.org/$1.git" . --quiet
     makepkg -sic
     cd .. && rm -rf $DIR
     echo -e "$MSG ${WHITE}Done!${RESET}"

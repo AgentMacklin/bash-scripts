@@ -88,7 +88,7 @@ class PackageManager
     else
       Logger.error("#{package} failed to install")
       @failed_installs << package
-      STATUS == ExitStatus::FAILURE if STATUS == ExitStatus::SUCCESS
+      STATUS == ExitStatus::FAILURE
     end
   end
 
@@ -123,6 +123,7 @@ packages = [
   'neovim',
   'figlet',
   'lolcat',
+  'fweoifwfjoifjewofij',
   'snapd'
 ]
 
