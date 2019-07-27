@@ -2,4 +2,4 @@
 # Run Kerbal Space Program from anywhere
 
 cd $HOME/KSP
-./KSP.x86_64
+./KSP.x86_64 &
