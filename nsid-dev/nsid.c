@@ -35,7 +35,7 @@ void usage(int argc, char **argv) {
         "  -b,  --bash <name>          Create a new Bash script\n"
         "  -p2, --python2 <name>       Create a new Python2 script\n"
         "  -p3, --python3 <name>       Create a new Python3 script\n"
-        "  -p,  --perl <name>          Create a new Python3 script\n"
+        "  -p,  --perl <name>          Create a new Perl script\n"
         "  -d,  --default <language>   Edit the default scripting language\n"
         "  -sd, --show-default         Show your current default language\n\n");
 }
