@@ -26,6 +26,7 @@ module ExitStatus
   FAILURE = 1
 end
 
+
 STATUS = ExitStatus::SUCCESS
 
 # Simple log messages to terminal
@@ -88,7 +89,7 @@ class PackageManager
     else
       Logger.error("#{package} failed to install")
       @failed_installs << package
-      STATUS == ExitStatus::FAILURE
+      STATUS = ExitStatus::FAILURE
     end
   end
 

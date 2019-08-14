@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+
+"""
+sym v0.1
+
+A small utility for integrating or differentiating functions. sym uses 'operators'
+to decide what to do with an expression. For example:
+
+    sym 't => 2t'    will integrate '2 * t'
+    sym 't -> 2t'    will differentiate '2 * t'
+
+The arrows in the expression are the operators. The variable on the left of an
+operator is the variable you wish to integrate with respect to, and on the right
+is the equation itself.
+
+Usage:
+    integ EXPR [RANGE...]
+
+Arguments:
+      EXPR      sym 't -> t^2' = t^3 / 3
+      RANGE     (x₀ x) sym 't -> t^2' 0 1 = 1 / 3
+
+Options:
+    --help      Display this help message
+
+Operators:
+      =>        Integrate the given expression
+      ->        Differentiate the expression
+"""
+
+EXPR = "EXPR"
+VALUES = "RANGE"
+
+import re
+from sys import stderr
+from docopt import docopt
+from sympy import integrate, diff, Symbol, pprint
+from sympy.core import sympify
+
+
+def unpackage_expression(arg_list):
+    """
+    Extract the variable the user is performing an operation on and the expression
+    itself, strip them of whitespace, and convert them to appropriate types. In this,
+    var is a sympy symbol and expr is returned as a sympy function.
+    """
+    if len(arg_list) != 2:
+        raise ValueError("Expression has more than one operator")
+    var = Symbol(arg_list[0].strip())
+    expr = expand_expression(arg_list[1].strip())
+    return (var, sympify(expr))
+
+
+def expand_expression(expr):
+    """
+    Take user input and convert it to something sympy can use, for example,
+    2x * x^2 becomes 2*x * x**2        
+    """
+    # expand_mult is a function that re.sub uses to convert values like
+    # 2t to 2 * t, etc
+    expand_mult = lambda group: group[1] + "*" + group[2]
+    expr = re.sub("([\d.]+)(\w)", expand_mult, expr).replace("^", "**")
+    return expr
+
+
+def calc_integral(func, var, values):
+    if values:
+        return integrate(func, (var, values[0], values[1]))
+    else:
+        return integrate(func, var)
+
+
+def main(**kwargs):
+    """
+    Parse the input string from the user and decide what operation to do based on the 
+    given operator, and catch any exceptions along the way.
+    """
+    expression = kwargs[EXPR]
+    values = kwargs[VALUES]
+    try:
+        operator = re.search("[-=]>", expression).group(0)
+        var, expr = unpackage_expression(expression.split(operator))
+        if operator == "->":
+            result = diff(expr, var)
+        elif operator == "=>":
+            result = calc_integral(expr, var, values)
+        pprint(result)
+
+    except ValueError as e:
+        stderr.write(f"{e}: '{expression}'\n")
+    except AttributeError:
+        stderr.write(f"Invalid operator in {expression}\n")
+
+
+if __name__ == "__main__":
+    args = docopt(__doc__)
+    main(**args)
