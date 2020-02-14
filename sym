@@ -51,11 +51,10 @@ def unpackage_expression(arg_list):
     expr = expand_expression(arg_list[1].strip())
     return (vars, sympify(expr))
 
-
 def expand_expression(expr):
     """
     Take user input and convert it to something sympy can use, for example,
-    2x * x^2 becomes 2*x * x**2
+    2x * x^2 becomes 2*x * x**2        
     """
     # expand_mult is a function that re.sub uses to convert values like
     # 2t to 2 * t, etc
