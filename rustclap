@@ -1,0 +1,70 @@
+#!/bin/zsh
+# Create a yaml file and main.rs for a clap project in rust
+
+MAIN_RS="\
+#[macro_use]
+extern crate clap;
+#[macro_use]
+extern crate serde_yaml;
+#[macro_use]
+extern crate serde_derive;
+
+
+fn main() {
+    let yaml = load_yaml!(\"cli.yml\");
+    let matches = App::from_yaml(yaml).get_matches();
+}"
+
+CLI_YML="\
+name:
+version: \"1.0\"
+author: Austen LeBeau <austenlebeau@gmail.com>
+about:
+
+args:
+    - run:
+        short: a
+        long:  all
+        help:
+        value_name: FILE
+
+    - gross:
+        short: g
+        long:  gross
+        help:
+        value_name: FILE
+
+    - fuel:
+        short: f
+        long:  fuel
+        help:
+        value_name: FILE
+
+
+subcommands:
+    - init:
+        about: Create a new project
+        args:
+            - file:
+                value_name: NAME
+                required: true
+                help: Name of study file"
+
+if [ -e cli.yml ]; then
+    echo "File 'cli.yml' already exists."
+else
+    
+    if [ -e main.rs ]; then
+        if grep -q clap main.rs;
+        then
+            echo "Clap contents already added to 'main.rs'"
+        else
+            echo $MAIN_RS > main.rs
+        fi
+        echo $CLI_YML > cli.yml 
+        echo "Contents added successfully."
+    else
+        echo "Could not find 'main.rs'. Aborting."
+    fi
+    
+fi

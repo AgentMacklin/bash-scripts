@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Create directory and cd into it
+
+mkdir $1 && cd $1

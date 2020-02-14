@@ -1,0 +1,214 @@
+#!/usr/bin/env bash
+
+# Configure a new system install, including installing development packages
+# and adding text to config files.
+#
+# This script was written with Manjaro or other Arch based systems in mind,
+# thus it uses pacman instead of apt. Thus, it obviously won't work with
+# Debian based systems.
+
+
+# Colored output so it looks nice
+RED='\033[1;31m'         # Red
+GREEN='\033[1;32m'       # Green
+BLUE='\033[1;34m'        # Blue
+CYAN='\033[1;36m'        # Cyan
+WHITE='\033[1;37m'       # White
+RESET='\033[0m'          # Text Reset
+
+# Directories and config directory exports
+ZSH_HIGH_DIR=${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+ZSH_HIGH="zsh-syntax-highlighting"      # this is dropped into ZSH config to enable highlighting
+ZSH_CONF=$HOME/.zshrc                   # ZSH config file
+OMZ_DIR=$HOME/.oh-my-zsh                # for checking if oh-my-zsh is installed
+HOME_BIN=$HOME/bin                      # bin for my stuff
+HOME_BIN_PATH='export PATH="$PATH:$HOME/bin"'
+ZSH_EXPORT='export ZSH="/home/austenl/.oh-my-zsh"'
+ZSH_CONF_CONTENTS="$HOME_BIN_PATH"
+# ZSH_TEST=$HOME/test                     # a dummy file for testing search and write text functions
+
+# Other variables
+WALLPAPER=$HOME/Pictures/wallpaper2.jpg  # wallpaper file, downloads from the internet if it's not already there
+WALLPAPER_URL=https://images.wallpaperscraft.com/image/neon_lights_dark_133133_3840x2160.jpg
+
+
+
+# Packages to install with pacman
+PAC_PACKAGES=(
+    make
+    cmake
+    autoconf
+    automake
+    libtool
+    gcc
+    python-pip
+    git
+    curl
+    tmux
+    neovim
+    figlet
+    lolcat
+    snapd
+)
+
+# packages you can't install with pacman but you can with snap
+SNAP_PACKAGES=(spotify)
+
+
+# Things to add to .zshrc
+ZSH_CONF_SETTINGS=(
+    "# Custom configs"
+    "$HOME_BIN_PATH"
+    "alias vim='nvim'"
+    "alias mkcd='. mkcd'"
+    "xmodmap -e 'add mod3 = Scroll_Lock'"
+)
+
+# Change color of messages so it's easier to spot when something went wrong
+configurer_msg() {
+    MSG="${WHITE}[${1}configurer${WHITE}]${RESET}"
+}
+
+# Check if something is installed and if it's not, install it
+check_and_install() {
+    if pacman -Qs $1 > /dev/null ; then
+        configurer_msg $BLUE
+        echo -e "$MSG $1 is already installed"
+    else
+        configurer_msg $CYAN
+        echo -e "$MSG installing $1"
+        sudo pacman -S --noconfirm $1
+    fi
+}
+
+# Check a config file for a line of text and skip writing if it's already there
+check_before_write() {
+    if grep -q "$1" $2; then
+        configurer_msg $BLUE
+        echo -e "$MSG $1 already added to $2"
+    else
+        configurer_msg $CYAN
+        echo $1 >> $2
+        echo -e "$MSG added $1 to $2"
+    fi
+}
+
+# Display a stylized message to show script has started another task
+header_msg () {
+    echo -e "${GREEN}==> ${WHITE}${1}${RESET}"
+}
+
+# Half of this script is changing colors, why am I like this fml
+
+echo -e $GREEN
+echo -e " ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ ██╗   ██╗██████╗ ███████╗██████╗ "
+echo -e "██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ ██║   ██║██╔══██╗██╔════╝██╔══██╗"
+echo -e "██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗██║   ██║██████╔╝█████╗  ██████╔╝"
+echo -e "██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║██║   ██║██╔══██╗██╔══╝  ██╔══██╗"
+echo -e "╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝╚██████╔╝██║  ██║███████╗██║  ██║"
+echo -e " ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝"
+echo -e $RESET
+
+
+# Go ahead and install packages
+ header_msg "Installing development tools..."
+ for i in "${PAC_PACKAGES[@]}"
+ do
+     check_and_install $i
+ done
+
+# Check if snapd.service is running before trying to install snap packages
+ if [ `systemctl is-active snapd.service` == 'inactive' ]; then
+     systemctl start snapd.service
+ fi
+
+ for i in "${SNAP_PACKAGES[@]}"
+ do
+     snap install $i
+ done
+
+
+# Installing Rust tools
+header_msg "Installing Rust toolchain..."
+if [ ! $(command -v rustup) ]; then
+    configurer_msg $CYAN
+    echo -e "$MSG ${RESET}Installing rustup"
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+else
+    configurer_msg $BLUE
+    echo -e "$MSG ${RESET}rustup is already installed"
+fi
+
+# Adding home bin directory and cloning in my scripts
+header_msg "Getting user scripts and adding to $HOME_BIN..."
+if [ ! -d $HOME_BIN ]; then     # Does home bin directory exist?
+    mkdir $HOME_BIN
+fi
+if [ -z "$(ls -A $HOME_BIN)" ]; then
+    configurer_msg $BLUE
+    echo -e "$MSG Cloning user bash scripts"
+    cd $HOME_BIN
+    git clone https://gitlab.com/AgentMacklin/bash-scripts .
+else
+    configurer_msg $BLUE
+    echo -e "$MSG Looks like $HOME_BIN already contains some files, check it after configurer is done"
+fi
+
+# Download a wallpaper I like...
+if [ ! -f $WALLPAPER ]; then
+    header_msg "Downloading wallpaper..."
+    wget -O $WALLPAPER $WALLPAPER_URL
+fi
+
+# Installing zsh and plugins. oh-my-zsh is installed "manually" instead of using
+# curl to get the install script, since running the install script from the omz
+# people terminates the rest of this script
+header_msg "Installing and configuring ZSH..."
+# sudo pacman -Syu zsh
+if [ ! -d $OMZ_DIR ]; then
+    configurer_msg $CYAN
+    echo -e "$MSG Installing oh-my-zsh"
+    # sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+    git clone https://github.com/robbyrussell/oh-my-zsh.git ~/.oh-my-zsh
+    cp ~/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc
+else
+    configurer_msg $BLUE
+    echo -e "$MSG oh-my-zsh directory already exists"
+fi
+
+
+# Installing ZSH syntax highlighting, check if zsh-highlight-syntax is already there before cloning
+if [ ! -d $ZSH_HIGH_DIR ]; then
+    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git $ZSH_HIGH_DIR
+else
+    configurer_msg $BLUE
+    echo -e "$MSG zsh-syntax-highlighting already installed"
+fi
+
+
+# Add plugin to .zshrc. zsh-syntax-highlight already exists in a comment so this will
+# check to see if there is more than one occurence before adding zsh highlight to list
+# of plugins
+if [ $(grep -c $ZSH_HIGH "$ZSH_CONF") -gt 1 ]; then
+    configurer_msg $BLUE
+    echo -e "$MSG $ZSH_HIGH already added to list of plugins in $ZSH_CONF"
+else
+    sed "s/\plugins=(\b/&$ZSH_HIGH /" -i $ZSH_CONF
+    configurer_msg $CYAN
+    echo -e "$MSG $ZSH_HIGH added to list of plugins in $ZSH_CONF"
+fi
+
+
+# Adding shell configs to zsh config
+header_msg "Adding configuration settings to $ZSH_CONF..."
+for i in "${ZSH_CONF_SETTINGS[@]}"; do
+    check_before_write "$i" $ZSH_CONF
+done
+
+chsh -s /bin/zsh
+
+echo -e "${GREEN}==> ${WHITE}System configuration done!${RESET}"
+
+echo
+header_msg "Please restart terminal to refresh configs."
+echo

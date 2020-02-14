@@ -1,0 +1,112 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# An overengineered script that makes connecting to the cluster
+# and transfering files easier
+
+require 'optparse'
+require 'json'
+
+# User config file
+ASC_CONF = "#{ENV['HOME']}/.asc"
+
+# Prevent problems trying to open the config file if it doesn't exist
+File.open(ASC_CONF, 'w') {} unless File.exist?(ASC_CONF)
+
+# For letting the user know if they supplied thw wrong number of arguments.
+class IncorrectArgNum < StandardError
+  attr_reader :info
+  def initialize(msg = 'Incorrect number of arguments were given', info = '')
+    @info = info
+    super(msg)
+  end
+end
+
+# If the config file is empty the user needs to specify their user name
+# if they want to connect to the cluster
+class EmptyConf < StandardError
+  attr_reader :info
+  def initialize(msg = 'Configuration file is empty', info = '')
+    @info = info
+    super(msg)
+  end
+end
+
+def get_username
+  File.open(ASC_CONF, 'r') do |f|
+    return 'please add username, use the -e option' if File.zero?(f)
+
+    conf = JSON.parse(f.read)
+    return conf['user']
+  end
+end
+
+def file_empty?(path)
+  File.open(path, 'r') do |f|
+    return File.zero?(f)
+  end
+end
+
+# This is the argument parser
+options = {}
+begin
+  OptionParser.new do |opts|
+    opts.banner = "Username: #{get_username}\nasc [options] <src> <dest>"
+
+    opts.on('-l', 'Copy file from cluster to local machine') do
+      options[:server_copy] = ARGV
+      num_args = options[:server_copy].length
+      if num_args != 2
+        raise IncorrectArgNum, "-c requires 2 arguments, got #{num_args}"
+      end
+    end
+    opts.on('-c', 'Copy file from local machine to cluster') do
+      options[:local_copy] = ARGV
+      num_args = options[:local_copy].length
+      if num_args != 2
+        raise IncorrectArgNum, "-l requires 2 arguments, got #{num_args}"
+      end
+    end
+    opts.on('-r', 'Copy recursively (copy directories and subdirectories)') do |r|
+      options[:recursive_copy] = r
+    end
+    opts.on('-x', 'Connect to the cluster, assuming you have added your username') do
+      if file_empty?(ASC_CONF)
+        raise EmptyConf, 'You need to add your username, use the -e option (example: asc -e aubcls53)'
+      end
+
+      user = get_username
+      `ssh #{user}@dmc.asc.edu > /dev/tty` # > /dev/tty to relinquish control back to user
+      exit(0)
+    end
+    opts.on('-e <name>', 'Edit/save your default username, or create one if it doesn\'t exist') do |name|
+      File.open(ASC_CONF, 'w') do |file|
+        file.write({ 'user': name }.to_json)
+      end
+    end
+  end.parse!
+rescue OptionParser::InvalidOption => e
+  puts "[asc] #{e.message.split(' ').last} is not a valid option"
+rescue IncorrectArgNum => e
+  puts "[asc] #{e.message}"
+rescue EmptyConf => e
+  puts "[asc] #{e.message}"
+  exit(1)
+end
+
+# Parsing scp commands if any exist
+if options[:local_copy] && options[:server_copy]
+  puts '[asc] Cannot use the -c and -l commands at the same time'
+else
+  command = options[:recursive_copy] ? 'scp -r' : 'scp'
+end
+
+user = get_username
+
+if options[:local_copy]
+  src, dest = *options[:local_copy]
+  `#{command} #{src} #{user}@dmc.asc.edu:/home/#{user}/#{dest} > /dev/tty`
+elsif options[:server_copy]
+  src, dest = *options[:server_copy]
+  `#{command} #{user}@dmc.asc.edu:/home/#{user}/#{src} #{dest} > /dev/tty`
+end

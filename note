@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+RESET='\033[0m'
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+
+ARG=""
+SUCCESS="[$GREEN"note"$RESET]:"
+ERROR="[$RED"note"$RESET]:"
+
+# Create a markdown file with metadata, which the eisvogel template uses to format
+# the title, date created, and author's name. It takes the date and creates a file
+# with that date as the name, checking if it exists so it doesn't overwrite it.
+function create_file() {
+    filename=$(date '+%a-%b-%d.md' | tr '[:upper:]' '[:lower:]')
+    if [ -f $filename ]; then
+        echo -e $ERROR $filename already exists
+    else
+        touch $filename
+        echo "---
+title:  \"$ARG\"
+author: \"Austen LeBeau\"
+date:   \"$(date '+%Y-%m-%d')\"
+...
+" >>$filename
+        echo -e $SUCCESS Created $filename in $(pwd)
+    fi
+}
+
+function help() {
+    echo "Usage:  note <FLAG>
+
+Quick note manager, which creates markdown files for class notes, etc.
+Compiles notes to PDFs.
+
+Flags:
+  -h          Display help message
+  -c          Create a file
+  -x <file>   Compile a markdown file
+  -t <str>    Create a file with a title"
+}
+
+# Uses pandoc to create a pdf of the the markdown file, using the eisvogel template
+function compile() {
+    if [ -f $ARG ]; then
+        echo "Compiling $ARG"
+        filename="${ARG%.md}"
+        pandoc $ARG -o "$filename.pdf" --from markdown --template eisvogel --listings
+    else
+        echo -e $ERROR $ARG does not exist
+    fi
+}
+
+# argument parsing
+while [ -n "$1" ]; do
+    case "$1" in
+    -c) create_file ;;
+    -t) # create a file with a title
+        shift
+        ARG=$1
+        create_file
+        ;;
+    -h) help ;;
+    -x)
+        shift
+        ARG=$1
+        compile
+        ;;
+    *) echo "$1 is not a valid flag" ;;
+    esac
+    shift
+done

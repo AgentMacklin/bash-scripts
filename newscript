@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+cd ~/bin
+touch $1
+echo "#!/bin/env bash" > $1
+chmod +x $1 
+vim $1

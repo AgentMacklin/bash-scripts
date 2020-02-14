@@ -1,0 +1,5 @@
+#/usr/bin/env bash
+
+#wine start /Users/austenlebeau/.wine/drive_c/ProgramData/Microsoft/Windows/Start\ Menu/Programs/NPSS/"CMD window with NPSS environment.lnk"
+
+wine start "CMD window with NPSS environment.lnk"
