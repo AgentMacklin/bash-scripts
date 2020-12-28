@@ -2,37 +2,44 @@
 # aurpac wraps cloning an AUR repo and makepkg into one command,
 # and cleans up the AUR repo afterwards
 
-# Long temporary directory name so there shouldn't be any
-# naming conflicts, hopefully
+# temporary build directory
 DIR=aurpacs_temporary_arch_user_repository_directory
 
 # Colored output so it looks nice
-RED='\033[1;31m'         # Red
-GREEN='\033[1;32m'       # Green
-BLUE='\033[1;34m'        # Blue
-CYAN='\033[1;36m'        # Cyan
-WHITE='\033[1;37m'       # White
-RESET='\033[0m'          # Text Reset
-
+ERROR='\033[1;31m'   # red
+SUCCESS='\033[1;32m' # green
+INFO='\033[1;34m'    # blue
+WHITE='\033[1;37m'   # white
+RESET='\033[0m'      # text color reset
 
 aurpac_msg() {
-    MSG="${WHITE}[${1}aurpac${WHITE}]${RESET}"
+    echo -e "${WHITE}[${1}aurpac${WHITE}]${RESET} ${2}"
 }
 
-if [ "$#" -ne 1 ]; then
-    aurpac_msg $RED
-    echo -e "$MSG Illegal number of parameters"
-else
-    if [ -d $DIR ]; then
-        aurpac_msg $BLUE
-        echo -e "$MSG Cleaning old temporary directory..."
-        rm -rf $DIR
-    fi
-    aurpac_msg $CYAN
-    mkdir $DIR && cd $DIR
-    echo -e "$MSG Cloning repository..."
-    git clone "https://aur.archlinux.org/$1.git" . --quiet
-    makepkg -sic
+if [ $# -ne 1 ]; then
+    aurpac_msg $ERROR "Illegal number of arguments, expected 1, got $#"
+    exit 1
+fi
+
+if [ -d $DIR ]; then
+    aurpac_msg $INFO "Cleaning old temporary directory..."
+    rm -rf $DIR
+fi
+
+mkdir $DIR && cd $DIR
+aurpac_msg $INFO "Cloning repository..."
+
+
+if ! git ls-remote --exit-code "https://aur.archlinux.org/$1.git" > /dev/null; then
+    aurpac_msg $ERROR "Git repository is empty, check if there's a typo"
+    exit 1
+fi
+
+git clone "https://aur.archlinux.org/$1.git" . --quiet
+
+if makepkg -sic; then
     cd .. && rm -rf $DIR
-    echo -e "$MSG ${WHITE}Done!${RESET}"
+    aurpac_msg $INFO "Done!"
+else
+    aurpac_msg $ERROR "Failed to build package"
 fi
