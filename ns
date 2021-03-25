@@ -22,7 +22,7 @@ function usage() {
 }
 
 
-# ns requires exactly one argument, either the help flags of the filename
+# ns requires exactly one argument, either the help flags or the filename
 if [ "$#" -ne 1 ]; then
     echo "ns requires a filename"
     exit 1

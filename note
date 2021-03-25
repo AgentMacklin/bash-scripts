@@ -4,21 +4,61 @@ RESET='\033[0m'
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 
-ARG=""
-SUCCESS="[$GREEN"note"$RESET]:"
-ERROR="[$RED"note"$RESET]:"
+_NAME=$(basename $0)
+
+SUCCESS="[$GREEN"$_NAME"$RESET]:"
+ERROR="[$RED"$_NAME"$RESET]:"
+
+function help() {
+echo "Usage: $_NAME <FLAG> [arg]
+
+Quick note manager, which creates markdown files for class notes, etc.
+Compiles notes to PDFs.
+
+Flags:
+  -x <file>   Compile a markdown file
+  -t <str>    Create a file with a title
+  -c          Create a file
+  -h          Display help message"
+}
+
+function check_template() {
+    local template_dir=/usr/share/pandoc/data/templates
+
+    if [ ! -d $template_dir ]; then
+        sudo mkdir -p $template_dir
+    fi
+
+
+    if [ ! -f "$template_dir/eisvogel.latex" ]; then
+        git clone git@github.com:Wandmalfarbe/pandoc-latex-template.git
+        sudo cp pandoc-latex-template/eisvogel.tex "$template_dir/eisvogel.latex"
+        rm -rf pandoc-latex-template
+    fi
+}
+
+function check_prereqs() {
+    if ! command -v pandoc &> /dev/null; then
+        echo -e $ERROR pandoc must be installed to compile pdfs
+    fi
+
+    if ! command -v pdflatex &> /dev/null; then
+        echo -e $ERROR latex must be installed to compile pdfs
+    fi
+
+}
 
 # Create a markdown file with metadata, which the eisvogel template uses to format
 # the title, date created, and author's name. It takes the date and creates a file
 # with that date as the name, checking if it exists so it doesn't overwrite it.
 function create_file() {
-    filename=$(date '+%a-%b-%d.md' | tr '[:upper:]' '[:lower:]')
+    local filename=$(date '+%a-%b-%d.md' | tr '[:upper:]' '[:lower:]')
     if [ -f $filename ]; then
         echo -e $ERROR $filename already exists
     else
         touch $filename
         echo "---
-title:  \"$ARG\"
+title:  \"$1\"
 author: \"Austen LeBeau\"
 date:   \"$(date '+%Y-%m-%d')\"
 ...
@@ -27,27 +67,17 @@ date:   \"$(date '+%Y-%m-%d')\"
     fi
 }
 
-function help() {
-    echo "Usage:  note <FLAG>
-
-Quick note manager, which creates markdown files for class notes, etc.
-Compiles notes to PDFs.
-
-Flags:
-  -h          Display help message
-  -c          Create a file
-  -x <file>   Compile a markdown file
-  -t <str>    Create a file with a title"
-}
 
 # Uses pandoc to create a pdf of the the markdown file, using the eisvogel template
 function compile() {
-    if [ -f $ARG ]; then
-        echo "Compiling $ARG"
-        filename="${ARG%.md}"
-        pandoc $ARG -o "$filename.pdf" --from markdown --template eisvogel --listings
+    check_template
+    check_prereqs
+    if [ -f $1 ]; then
+        echo "Compiling $1"
+        filename="${1%.md}"
+        pandoc $1 -o "$filename.pdf" --from markdown --template eisvogel --listings
     else
-        echo -e $ERROR $ARG does not exist
+        echo -e $ERROR $1 does not exist
     fi
 }
 
@@ -57,14 +87,12 @@ while [ -n "$1" ]; do
     -c) create_file ;;
     -t) # create a file with a title
         shift
-        ARG=$1
-        create_file
+        create_file $1
         ;;
     -h) help ;;
     -x)
         shift
-        ARG=$1
-        compile
+        compile $1
         ;;
     *) echo "$1 is not a valid flag" ;;
     esac
