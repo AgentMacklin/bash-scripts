@@ -1,3 +1,3 @@
-# Bash Scripts
+# Scripts
 
-## A personal repository for my silly bash scripts.
+I keep some of my more useful scripts here.
