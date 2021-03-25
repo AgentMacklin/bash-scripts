@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Interactively create new executable scripts
+
+# add more scripting languages here if you want
+scripts=(
+    bash
+    python2
+    python3
+)
+
+function usage() {
+    scriptname=$(basename $0)
+    echo -e "Usage: $scriptname FILENAME" 
+    echo -e "Create a new executable script for the following languages:\n"
+    for n in ${scripts[@]}; do
+        echo -e "  $n"
+    done
+    echo -e "\nArguments:"
+    echo -e "  FILENAME     Name of the script, $scriptname will prompt you for the language"
+    echo -e "\nOptions:"
+    echo -e "  -h, --help   Display this help message"
+}
+
+
+# ns requires exactly one argument, either the help flags of the filename
+if [ "$#" -ne 1 ]; then
+    echo "ns requires a filename"
+    exit 1
+fi
+
+if [[ ( $1 == "--help" ) || ( $1 == "-h" ) ]]; then
+    usage
+    exit 0
+fi
+
+# ns will also stop if the script already exists
+if [ -f $1 ]; then
+    echo "$1 already exists, cancelling"
+    exit 1
+fi
+
+PS3="Select script language: "
+select lang in ${scripts[@]}; do
+    if [ -z $lang ]; then
+        echo "$REPLY is not valid"
+    else
+        break
+    fi
+done
+
+touch $1 && chmod u+x $1 && echo "#!/usr/bin/env $lang" >> $1
+echo "created $1 as $lang script"
