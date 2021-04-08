@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
-source $HOME/.bashrc
+source . $HOME/.bashrc
 
 nvm install node
 sh -c 'curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
