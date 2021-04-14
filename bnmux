@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+session=bnsim
+
+# add server ip addresses here (a is a shortcut I have for one of my servers)
+# example: [FP1]=username@192.168.1.69
+declare -A servers=(
+    [FP1]=a 
+    [FP2]=a 
+    [FP3]=a 
+    [FP4]=a
+)
+
+tmux new-session -d -s $session
+
+# Home window, keep an open window on your current machine 
+tmux rename-window $HOSTNAME
+
+for name in "${!servers[@]}"; do
+    tmux new-window -c $HOME -n $name ssh "${servers[$name]}"
+    tmux split-window -h -c $HOME ssh "${servers[$name]}"
+done
+
+tmux select-window -t 1
+tmux attach-session -t $session
